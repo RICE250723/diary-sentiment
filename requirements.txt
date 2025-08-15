@@ -6,3 +6,5 @@ numpy==2.3.2
 matplotlib==3.10.5
 seaborn==0.13.2
 fonttools==4.59.0
+fugashi==1.5.1
+unidic-lite==1.0.8
