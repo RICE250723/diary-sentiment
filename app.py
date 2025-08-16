@@ -4,11 +4,15 @@ import torch
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import japanize_matplotlib
 import matplotlib.font_manager as fm
 from datetime import datetime
+import pytz
 import json
 import os
 import seaborn as sns
+
+JST = pytz.timezone("Asia/Tokyo")
 
 # ---------------------------
 # 設定
@@ -155,7 +159,7 @@ for key in ["user_text", "selected_habits", "entry_time", "reset_user_text",
             "reset_selected_habits", "new_habit_input", "reset_new_habit_input",
             "reset_entry_time"]:
     if key not in st.session_state:
-        st.session_state[key] = "" if "text" in key or "new_habit_input" in key else [] if "selected" in key else False if "reset" in key else datetime.now().time()
+        st.session_state[key] = "" if "text" in key or "new_habit_input" in key else [] if "selected" in key else False if "reset" in key else datetime.now(JST).time()
 
 # --- リセット処理 ---
 if st.session_state["reset_user_text"]:
@@ -171,14 +175,15 @@ if st.session_state["reset_new_habit_input"]:
     st.session_state["reset_new_habit_input"] = False
 
 if st.session_state["reset_entry_time"]:
-    st.session_state["entry_time"] = datetime.now().time()
+    st.session_state["entry_time"] = datetime.now(JST).time()
     st.session_state["reset_entry_time"] = False
 
 st.title("行動・感情相関ダッシュボード")
 st.subheader("日々の行動と感情の関係をデータで見える化")
 
-entry_date = st.date_input("日付", value=datetime.today())
-entry_time = st.time_input("時間", key="entry_time")
+now_jst = datetime.now(JST)
+entry_date = st.date_input("日付", value=now_jst.date())
+entry_time = st.time_input("時間", value=now_jst.time(), key="entry_time")
 user_text = st.text_area("今日の日記", height=200, key="user_text")
 
 col1, col2 = st.columns([4,1])
@@ -241,15 +246,25 @@ else:
 st.markdown("---")
 period = st.selectbox("表示期間", ["日", "週", "月", "年"], key="period_select")
 
+import pytz
+
+JST = pytz.timezone("Asia/Tokyo")
+
 def filter_df_by_period(df, period):
+    # 日付列をdatetimeに変換
     df["date_dt"] = pd.to_datetime(df["date"])
-    today = pd.Timestamp.today()
+
+    # JSTに統一
+    df["date_dt"] = df["date_dt"].dt.tz_localize(JST)  # タイムゾーンなしなら localize
+    today = pd.Timestamp(datetime.now(JST))
+
     if period == "日":
-        return df[df["date_dt"] == today.normalize()]
+        today_norm = today.normalize()
+        return df[df["date_dt"] == today_norm]
     elif period == "週":
-        start = today - pd.Timedelta(days=today.weekday())
-        end = start + pd.Timedelta(days=6)
-        return df[(df["date_dt"] >= start.normalize()) & (df["date_dt"] <= end.normalize())]
+        start = (today - pd.Timedelta(days=today.weekday())).normalize()
+        end = (start + pd.Timedelta(days=6)).normalize()
+        return df[(df["date_dt"] >= start) & (df["date_dt"] <= end)]
     elif period == "月":
         return df[df["date_dt"].dt.month == today.month]
     elif period == "年":
