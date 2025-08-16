@@ -183,7 +183,9 @@ st.subheader("日々の行動と感情の関係をデータで見える化")
 
 now_jst = datetime.now(JST)
 entry_date = st.date_input("日付", value=now_jst.date())
-entry_time = st.time_input("時間", value=now_jst.time(), key="entry_time")
+if "entry_time" not in st.session_state:
+    st.session_state["entry_time"] = datetime.now(JST).time()
+entry_time = st.time_input("時間", key="entry_time")
 user_text = st.text_area("今日の日記", height=200, key="user_text")
 
 col1, col2 = st.columns([4,1])
